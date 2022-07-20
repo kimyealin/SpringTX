@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+	<import resource="applicationContext.xml"/>
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" p:dataSource-ref="dataSource" />
+	<bean id="itemDao" class="yeling.spring.store.dao.jdbc.JdbcItemDao">
+		<constructor-arg><ref bean="jdbcTemplate" /></constructor-arg>
+	</bean>
+	<bean id="paymentInfoDao" class="yeling.spring.store.dao.jdbc.JdbcPaymentInfoDao">
+		<constructor-arg><ref bean="simpleJdbcInsert" /></constructor-arg>
+		<property name="namedJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+	</bean>
+	<bean id="purchaseOrderDao" class="yeling.spring.store.dao.jdbc.JdbcPurchaseOrderDao">
+		<constructor-arg><ref bean="simpleJdbcInsert"/></constructor-arg>
+		<property name="namedJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+	</bean>
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="order" propagation="REQUIRED"/>
+			<tx:method name="get*" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut expression="execution(public * yeling.spring..*Service.*(..))" id="servicePublicMethod"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="servicePublicMethod"/>
+	</aop:config>
+	<bean id="placeOrderService" class="yeling.spring.store.service.PlaceOrderServiceImplOne"
+	p:itemDao-ref="itemDao" p:paymentInfoDao-ref="paymentInfoDao" p:purchaseOrderDao-ref="purchaseOrderDao"/>
+</beans>
